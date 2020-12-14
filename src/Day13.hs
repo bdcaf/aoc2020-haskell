@@ -44,6 +44,7 @@ sol1 (TimeTable t bs)= res shortest
         shortest = minimumBy (\(_,a) (_,b) -> compare a b) b2
         res (a,b) = a*b
 
+-- extended euclid recursive
 egcd _ 0 = (1, 0)
 egcd a b = (t, s - q * t)
   where
