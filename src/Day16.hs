@@ -110,7 +110,7 @@ canBe (Constraint str ((a,b):cs)) v
 ticketCand :: Note -> [[String]]
 ticketCand ns = ticketCand' cs vt
   where cs = nConstr ns
-        ts = (myTicket ns) : filter (checkTicket cs) (nearbyTicket ns)
+        ts = myTicket ns : filter (checkTicket cs) (nearbyTicket ns)
         vt = map unTicket ts
 
 ticketCand' _ [] = []
@@ -149,7 +149,7 @@ sol2 inp = res
         tn = cleanCands tc
         m = zip tn $ unTicket $ myTicket inp
         mDep = filter (matchStart "departure" . fst) m
-        res = product . map (snd) $ mDep
+        res = product . map snd $ mDep
 
 part2 :: IO ()
 part2 = do
