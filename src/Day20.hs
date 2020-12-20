@@ -1,3 +1,4 @@
+{-# LANGUAGE TupleSections #-}
 module Day20 where
 
 import System.IO
@@ -121,8 +122,6 @@ example = readInput
 
 data Tile = Tile {tileNum::Int, tileCont:: [String]}
   deriving Show
-data TileRed = TileRed Int String String String String
-  deriving Show
 
 parseTile :: GenParser Char s Tile
 parseTile = do 
@@ -150,54 +149,27 @@ bottomSide  = last
 leftSide  = map head 
 rightSide  = map last 
 
-toTileRed (Tile n s) = TileRed n (topSide s) (leftSide s) (bottomSide s) (rightSide s)
-trNum (TileRed n _ _ _ _) = n
-nStr (TileRed _ n _ _ _) = n
-
-rotRight (TileRed n a b c d) = TileRed n (reverse b) c (reverse d) a
-flipV (TileRed n a b c d) = TileRed n c (reverse b) a (reverse d)
-flipH (TileRed n a b c d) = TileRed n (reverse a) d (reverse c) b
-
-data Direction = North | South | East | West
-  deriving (Show,  Eq, Ord)
-data Fdir = FNorm | FFlip 
-  deriving (Show, Eq, Ord)
-data Match = Match Int Int Direction Direction
-  deriving Show
-
-match2 t1 t2 = concatMap (\(a,b,c,x) -> map (\(d,e) -> ((a,c),(b,d,e))) x) . zipWith (\d0 r1 -> (trNum t2, trNum t1, d0,r1) ) [North, West, South, West] . map ((`match1` t2) . nStr) . iterate rotRight $ t1
--- match North to:
-match1 s0 t2 =  concatMap (\(a,x) -> map (\y -> (a,y)) x). zip [South, East, North, West] . map (match0 s0) . iterate rotRight $ t2
-match0 s0 (TileRed n _ _ c0 _) = catMaybes [tn s0 c0, tf s0 c0]
-  where tn s1 c1 = if s1 == c1 then Just FNorm else Nothing
-        tf s1 c1 = if s1 == reverse c1 then Just FFlip else Nothing
-
-buildMap m1 = M.fromList $ m0 ++ map (\((a,c),(b,d,e)) -> ((b,d),(a,c,e))) m0
-  where m0 = buildMap' m1
-        buildMap' [] = []
-        buildMap' (t1:ts) = m1s ++ buildMap' ts
-          where m1s = concatMap (match2 t1) ts
 
 --pickStart mm = head . head $ sv
   --where sv = filter ((==2) . length) . group . map fst . M.keys $ mm
 
-arrStart t0 = M.singleton (0,0) t0
+arrStart = M.singleton (0,0)
 arrAdd arr ta = undefined
-surround arr = S.toList $ neigh `S.difference` (M.keysSet arr)
+surround arr = S.toList $ neigh `S.difference` M.keysSet arr
   where mk = M.keys arr
         neigh = S.fromList . concatMap directNeighbors $ mk
 
 tileRot (Tile n ts) =   Tile n (rot ts)
-rot arr = map reverse . map (\i -> map ( !! i) arr) $ [0..((length . head $ arr)-1)]
+rot arr = map (reverse . (\i -> map ( !! i) arr)) [0..((length . head $ arr)-1)]
 tileFlipLR (Tile n ts) = Tile n (map reverse ts)
 tileFlipUD (Tile n ts) = Tile n (reverse ts)
 
-allOrientations t = concatMap allRots . allFlips $ t
+allOrientations = concatMap allRots . allFlips 
   where allFlips t1 = [t1 , tileFlipLR t1] -- flip ud already covered by rotation
         allRots  = take 4 . iterate tileRot
 
 grow1 arr [] = [arr]
-grow1 arr ts = concatMap (\(ar,tr) -> grow1 ar tr) goodAr2
+grow1 arr ts = concatMap (uncurry grow1) goodAr2
   where cands = surround arr
         ar2s = tryCand arr cands ts
         goodAr2 = filter ((< length ts) . length . snd) ar2s
@@ -206,11 +178,11 @@ tryCand arr (c0:cs) ts = concatMap (\(a,t) -> tryCand a cs t ) r1
   where r1 = tryTile arr c0 ts []
 
 tryTile arr cand [] tr = [(arr, tr)]
-tryTile arr cand (t:ts) tr = r2  ++ (tryTile arr cand ts (t:tr)) 
+tryTile arr cand (t:ts) tr = r2  ++ tryTile arr cand ts (t:tr)
   where te = tryExplicit arr cand t
         a2 = map (\t -> M.insert cand t arr) te
-        r2 = map (\a -> (a, tr ++ ts)) a2
-tryExplicit arr cand t = filter (\tt -> doesFit arr cand tt) ts
+        r2 = map (, tr ++ ts) a2
+tryExplicit arr cand t = filter (doesFit arr cand) ts
   where ts = allOrientations t 
 doesFit arr (xc,yc) (Tile _ t1) = and $ catMaybes [ft,fb,fl,fr]
   where
@@ -262,16 +234,16 @@ toBM ma = reverse $ jRows rows
         xr = [minimum xs .. maximum xs]
         yr = reverse [minimum ys .. maximum ys]
         xkeys x = [(x,y) | y <- yr] 
-        colTiles x = concatMap (remBorder.tileCont) . map (ma M.!) . xkeys $ x
+        colTiles x = concatMap (remBorder.tileCont . (ma M.!)) . xkeys $ x
         rows = map colTiles xr
         jRows [x] = x
-        jRows (a:b:as) = jRows ((zipWith (++) a b ):as)
-remBorder ts =  map (init . tail) . init . tail $ ts
+        jRows (a:b:as) = jRows (zipWith (++) a b :as)
+remBorder =  map (init . tail) . init . tail 
 
 monster = "                  # \n\
           \#    ##    ##    ###\n\
           \ #  #  #  #  #  #   "
-toPat m = S.fromList . concat . zipWith (\a l -> map (\b -> (b,a)) l) [0..] . map pl $ m
+toPat = S.fromList . concat . zipWith (\a l -> map (,a) l) [0..] . map pl 
   where pl = elemIndices '#' 
 
 mp = toPat . lines $ monster
@@ -293,8 +265,8 @@ findPat imgPat searchPat = (length sps, S.size diffP)
         exactMatch (s:ss)
           | s `elem` imgPat = exactMatch ss
           | otherwise = False
-        sps =  filter exactMatch .  map (`shiftPat` (S.toList searchPat)) $ shifts
-        diffP = imgPat `S.difference` (S.fromList (concat sps))
+        sps =  filter exactMatch .  map (`shiftPat` S.toList searchPat) $ shifts
+        diffP = imgPat `S.difference` S.fromList (concat sps)
   
 
 allArrangements p = concatMap rots [p, reverse p]
