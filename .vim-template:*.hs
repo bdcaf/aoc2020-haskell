@@ -11,7 +11,7 @@ readData = do
   return $ readInput contents
 
 readInput :: String -> [Int]
-readInput = undefined
+readInput = fromRight undefined . parse undefined "input" 
 
 %HERE%
 
@@ -23,11 +23,11 @@ sol2 = undefined
 part1 :: IO ()
 part1 = do
   inp <- readData
-  undefined
+  print (sol2 inp)
   
 
 part2 :: IO ()
 part2 = do
   inp <- readData
-  undefined
+  print (sol2 inp)
 
