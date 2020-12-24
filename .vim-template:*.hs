@@ -10,7 +10,6 @@ readData = do
   contents <- hGetContents handle
   return $ readInput contents
 
-readInput :: String -> [Int]
 readInput = fromRight undefined . parse undefined "input" 
 
 %HERE%
@@ -20,14 +19,14 @@ sol1 = undefined
 sol2 = undefined
 
 
-part1 :: IO ()
-part1 = do
-  inp <- readData
-  print (sol2 inp)
+-- part1 :: IO ()
+-- part1 = do
+--   inp <- readData
+--   print (sol2 inp)
   
 
-part2 :: IO ()
-part2 = do
-  inp <- readData
-  print (sol2 inp)
+-- part2 :: IO ()
+-- part2 = do
+--   inp <- readData
+--   print (sol2 inp)
 
